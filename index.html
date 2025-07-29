@@ -526,31 +526,6 @@
                     "Benedict Cumberbatch", "Andrew Garfield", "Matt Bomer", "Ryan Reynolds"
                 ].map(d => d.toLowerCase().trim().replace(/"/g, '')).filter(d => d),
 
-                // Removed 'nomiStrani' category as per previous user request
-                // nomiStrani: [
-                //     "concetto vecchio", "cataldo Stragapede", "loris borro", "delfo bardelli", "Felicino Vaniglia",
-                //     "Nunziante Splendore", "Emilio Stancampiano", "carmelinda pietragalla", "salvatore arcadipane",
-                //     "catena de grande", "felice porto", "Maurizio Capezzuoli Ranchi", "Andrea Scozzafava",
-                //     "Leopoldo Matrangolo", "dora peto", "cristofaro colombo", "dino alexander protasoni",
-                //     "juan gerardo belen rossi", "Domenicantonio Sabetta", "Medardo Gabelli", "Roberto Grissino",
-                //     "basilio marascio", "enrica guastadisegni", "pasqualino indelicato", "hilary porro",
-                //     "Angelo Caimano", "Mariarca Bonaiuto", "Ascanio Bellopede", "sebastiano derelitto",
-                //     "bruno casadio", "umano teodori", "dennis volante", "Saverio Maniglia", "Marco Porcile",
-                //     "davide terrone", "raimondo capodicasa", "michelino cloroformio", "lupo gelsi",
-                //     "mattia joe venturelli", "Crisele Ariola", "Feliciano Bufalino", "Euplio Piccirillo",
-                //     "novella novelli", "alessandro pastormerlo", "antonio figarola", "giusy lembo",
-                //     "Loreto Fantozzi", "Olga Fungo", "Felice Spinello", "Floro Guarna", "dionigi volpe",
-                //     "andrea favagrossa", "yuri bombardi", "Melchiorre Candino", "Defendente Circoncisi",
-                //     "Felice Scoccimarro", "Loredano Guasina", "costanzo pungente", "ignazia giuseppa gelsomino",
-                //     "giangaleazzo ganzarolli", "Antonfranco Pasquale", "Regina Della Guerra", "Angelo Viavattene",
-                //     "ciro cipolletta", "fiorello cacau", "decimo galletti", "detalmo granzotto",
-                //     "Giorgio Meloni", "Omodeo Gianolo Paolo", "Eusachio Machera", "kevin testagrossa",
-                //     "iriza alma orofino", "vanna tagliavini", "bardilio puggioni", "Brando Benifei",
-                //     "Giuseppe Trombatore", "Immacolata Veloce", "demetrio cutrupi", "viola di domenicantonio",
-                //     "adriana degli effetti luciani", "gasparino facchinetti forlani", "Fiona Cacalli",
-                //     "Derek Vassallo", "Fabrizio Frinolli Puzzilli", "Antonangelo Casula", "Placido Recupero",
-                //     "Luca Sederino", "Pasqualino Fattaccio", "Letterio Grillo", "Berardino Tarallo", "V"
-                // ].map(d => d.toLowerCase().trim().replace(/"/g, '')).filter(d => d && d !== 'v')
             };
             
             const roundTitles = ["Ottavi di Finale", "Quarti di Finale", "Semifinali", "Finale"];
@@ -1035,8 +1010,8 @@
                 try {
                     const roomId = generateRoomId();
                     currentRoomId = roomId;
-                    // Corrected Firestore path: added /data/
-                    const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, roomId);
+                    // Corrected Firestore path: using collection for nested path segments
+                    const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), roomId);
 
                     // Generate questions for the quiz
                     const selectedItems = shuffle([...availableItems]).slice(0, numQuestions);
@@ -1114,8 +1089,8 @@
                 joinRoomButton.disabled = true;
 
                 try {
-                    // Corrected Firestore path: added /data/
-                    const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, roomId);
+                    // Corrected Firestore path: using collection for nested path segments
+                    const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), roomId);
                     const roomSnap = await getDoc(roomRef);
 
                     if (!roomSnap.exists()) {
@@ -1155,8 +1130,8 @@
                             unsubscribeRoomListener = null;
                         }
 
-                        // Corrected Firestore path: added /data/
-                        const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId);
+                        // Corrected Firestore path: using collection for nested path segments
+                        const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId);
                         const roomSnap = await getDoc(roomRef);
                         
                         if (roomSnap.exists()) {
@@ -1189,8 +1164,8 @@
                     unsubscribeRoomListener(); // Unsubscribe from previous listener if any
                 }
 
-                // Corrected Firestore path: added /data/
-                const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, roomId);
+                // Corrected Firestore path: using collection for nested path segments
+                const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), roomId);
                 unsubscribeRoomListener = onSnapshot(roomRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const roomData = docSnap.data();
@@ -1247,8 +1222,8 @@
 
             async function startGame() {
                 if (currentRoomId && currentUserId) {
-                    // Corrected Firestore path: added /data/
-                    const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId);
+                    // Corrected Firestore path: using collection for nested path segments
+                    const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId);
                     const roomSnap = await getDoc(roomRef);
                     if (roomSnap.exists() && roomSnap.data().hostId === currentUserId) {
                         const roomData = roomSnap.data();
@@ -1362,7 +1337,7 @@
                         clearInterval(questionTimerInterval);
                         if (roomData.hostId === currentUserId && roomData.state === "question") {
                             // Host automatically reveals answer if time runs out
-                            updateDoc(doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId), {
+                            updateDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId), {
                                 state: "revealing",
                                 questionEndTime: serverTimestamp()
                             });
@@ -1384,8 +1359,8 @@
             async function submitAnswer(selectedOption) {
                 if (!currentRoomId || !currentUserId) return;
 
-                // Corrected Firestore path: added /data/
-                const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId);
+                // Corrected Firestore path: using collection for nested path segments
+                const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId);
                 const roomSnap = await getDoc(roomRef);
                 if (!roomSnap.exists()) return;
 
@@ -1453,8 +1428,8 @@
                             updatedPlayers[playerId].scoredForCurrentQuestion = true; // Mark as scored
                         }
                     }
-                    // Corrected Firestore path: added /data/
-                    await updateDoc(doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId), {
+                    // Corrected Firestore path: using collection for nested path segments
+                    await updateDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId), {
                         players: updatedPlayers
                     });
                 }
@@ -1477,13 +1452,13 @@
             }
 
             async function nextQuestion() {
-                // Corrected Firestore path: added /data/
-                if (!currentRoomId || currentUserId !== (await getDoc(doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId))).data().hostId) {
+                // Corrected Firestore path: using collection for nested path segments
+                if (!currentRoomId || currentUserId !== (await getDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId))).data().hostId) {
                     return; // Only host can advance
                 }
 
-                // Corrected Firestore path: added /data/
-                const roomRef = doc(db, `artifacts/${appId}/public/data/quiz_rooms`, currentRoomId);
+                // Corrected Firestore path: using collection for nested path segments
+                const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId);
                 const roomSnap = await getDoc(roomRef);
                 if (!roomSnap.exists()) return;
                 const roomData = roomSnap.data();
