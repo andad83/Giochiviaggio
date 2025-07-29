@@ -3,47 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nomi, Cose, Città - Multiplayer</title>
+    <title>Nomi, Cose, Città - Singolo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Lora:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables for Firebase (will be populated by Canvas environment)
-        window.__app_id = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        window.__firebase_config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        window.__initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        window.firebaseApp = initializeApp(window.__firebase_config);
-        window.db = getFirestore(window.firebaseApp);
-        window.auth = getAuth(window.firebaseApp);
-
-        // Exporting for use in main script block
-        window.firebase = {
-            auth: window.auth,
-            db: window.db,
-            signInAnonymously: signInAnonymously,
-            signInWithCustomToken: signInWithCustomToken,
-            onAuthStateChanged: onAuthStateChanged,
-            setDoc: setDoc,
-            collection: collection,
-            query: query,
-            onSnapshot: onSnapshot,
-            updateDoc: updateDoc,
-            arrayUnion: arrayUnion,
-            arrayRemove: arrayRemove,
-            deleteDoc: deleteDoc,
-            doc: doc,
-            getDoc: getDoc,
-            serverTimestamp: serverTimestamp
-        };
-    </script>
-
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
@@ -86,6 +50,7 @@
             cursor: not-allowed;
         }
         .timer-bar-container {
+            position: relative; /* Added for absolute positioning of timer text */
             width: 100%;
             background-color: #e0e0e0;
             border-radius: 5px;
@@ -100,6 +65,16 @@
             width: 100%;
             transition: width linear;
         }
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333; /* Darker color for readability */
+            font-weight: bold;
+            font-size: 0.8rem; /* Smaller font to fit */
+            text-shadow: 0 0 2px rgba(255,255,255,0.7); /* Slight shadow for contrast */
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -107,57 +82,20 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-bold title-font text-red-800">Nomi, Cose, Città</h1>
-            <p class="text-lg text-gray-600 mt-2">Gioca con i tuoi amici in tempo reale!</p>
-            <p class="text-sm text-gray-500 mt-1" id="user-id-display"></p>
+            <p class="text-lg text-gray-600 mt-2">Gioca da solo o con gli amici sullo stesso dispositivo!</p>
         </header>
 
-        <!-- Loading Screen -->
-        <div id="loading-screen" class="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-lg hidden">
-            <div class="spinner mb-4"></div>
-            <p class="text-xl text-gray-700">Caricamento...</p>
-        </div>
-
         <!-- Main Menu Screen -->
-        <div id="main-menu-screen" class="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-lg hidden">
-            <h2 class="text-3xl font-bold title-font text-blue-700 mb-6">Inizia una Partita</h2>
+        <div id="main-menu-screen" class="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-lg">
+            <h2 class="text-3xl font-bold title-font text-blue-700 mb-6">Inizia una Nuova Partita</h2>
             
             <div class="mb-4 w-full max-w-sm">
                 <label for="player-nickname" class="block text-gray-700 text-sm font-bold mb-2">Il tuo Nickname:</label>
                 <input type="text" id="player-nickname" placeholder="Inserisci il tuo nome" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 border-gray-300"/>
             </div>
 
-            <button id="create-game-button" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 text-lg mb-4">Crea Nuova Partita</button>
-            
-            <hr class="my-8 w-full max-w-md border-t-2 border-gray-200">
-
-            <div class="mb-4 w-full max-w-sm">
-                <label for="game-id-input" class="block text-gray-700 text-sm font-bold mb-2">ID Partita Esistente:</label>
-                <input type="text" id="game-id-input" placeholder="Inserisci ID Partita" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 border-gray-300"/>
-            </div>
-            <button id="join-game-button" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300 text-lg">Unisciti a Partita</button>
-            <p id="game-setup-feedback" class="text-sm mt-2 hidden"></p>
-            <div id="game-setup-spinner" class="spinner mt-4 hidden"></div>
-        </div>
-
-        <!-- Game Lobby Screen -->
-        <div id="game-lobby-screen" class="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-lg hidden">
-            <h2 class="text-3xl font-bold title-font text-blue-700 mb-6">Lobby della Partita</h2>
-            <p class="text-xl text-gray-700 mb-4">ID Partita: <span id="lobby-game-id" class="font-bold text-blue-800"></span></p>
-            <p class="text-md text-gray-600 mb-4">(Condividi questo ID con i tuoi amici)</p>
-
-            <h3 class="text-2xl font-bold title-font text-gray-700 mb-4">Giocatori Connessi:</h3>
-            <ul id="players-list" class="list-disc list-inside text-gray-800 mb-8 max-w-sm w-full">
-                <!-- Players will be listed here -->
-            </ul>
-
-            <button id="ready-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300 text-lg mb-4">Sono Pronto!</button>
-            <button id="start-game-button" class="bg-purple-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-300 text-lg hidden disabled-button">Avvia Partita</button>
-            <p id="lobby-feedback" class="text-sm mt-2 hidden"></p>
-            <div id="lobby-spinner" class="spinner mt-4 hidden"></div>
-
-            <footer class="text-center mt-12">
-                <button id="leave-game-button" class="bg-red-700 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-red-800 transition-colors duration-300">Abbandona Partita</button>
-            </footer>
+            <button id="start-game-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300 text-lg mb-4">Inizia Partita</button>
+            <p id="game-setup-feedback" class="text-sm mt-2 hidden text-red-500"></p>
         </div>
 
         <!-- Countdown Screen -->
@@ -174,6 +112,7 @@
                 <p id="current-letter-display" class="text-8xl font-bold text-red-800 animate-bounce"></p>
                 <div class="timer-bar-container">
                     <div id="game-timer-bar" class="timer-bar"></div>
+                    <span id="game-timer-text" class="timer-text"></span>
                 </div>
             </div>
 
@@ -199,12 +138,8 @@
                     <input type="text" id="input-animali" class="category-input" data-category="animali" placeholder="Un animale...">
                 </label>
                 <label class="block">
-                    <span class="text-gray-700 font-bold">Fiori:</span>
-                    <input type="text" id="input-fiori" class="category-input" data-category="fiori" placeholder="Un fiore...">
-                </label>
-                <label class="block">
-                    <span class="text-gray-700 font-bold">Piante:</span>
-                    <input type="text" id="input-piante" class="category-input" data-category="piante" placeholder="Una pianta...">
+                    <span class="text-gray-700 font-bold">Fiori e Piante:</span>
+                    <input type="text" id="input-fioriepiante" class="category-input" data-category="fioriepiante" placeholder="Un fiore o una pianta...">
                 </label>
             </div>
 
@@ -225,8 +160,7 @@
                 </ul>
             </div>
             
-            <p class="text-lg text-gray-600 mt-4">In attesa che tutti i giocatori finiscano...</p>
-            <div id="results-spinner" class="spinner mt-4"></div>
+            <p id="time-remaining-message" class="text-lg text-gray-700 mt-4"></p> <!-- New element for time message -->
 
             <footer class="text-center mt-12">
                 <button id="play-new-game-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300 text-lg mb-4">Gioca Nuova Partita</button>
@@ -236,56 +170,37 @@
     </div>
 
     <script>
-        // Ensure Firebase is loaded before running main script
-        window.addEventListener('load', async () => {
-            if (typeof window.firebase === 'undefined') {
-                console.error("Firebase SDK non caricato. Assicurati che lo script del modulo sia eseguito correttamente.");
-                document.getElementById('loading-screen').innerHTML = '<p class="text-red-500">Errore: Firebase non caricato. Ricarica la pagina.</p>';
-                return;
-            }
-
-            const { auth, db, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setDoc, collection, onSnapshot, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } = window.firebase;
-
+        document.addEventListener('DOMContentLoaded', function () {
             // --- GLOBAL GAME STATE & VARIABLES ---
-            const GAME_CATEGORIES = ["nomi", "cose", "citta", "colore", "animali", "fiori", "piante"];
-            const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(''); // Italian alphabet without J, K, W, X, Y
-            const COUNTDOWN_TIME = 20; // seconds for the game round
+            // Restricted Italian alphabet
+            const ALPHABET = "AEIOUBCDFGLMNPQRSTVZ".split(''); 
+            const GAME_TIME = 60; // seconds for the game round - Increased to 60 seconds
+            const COUNTDOWN_START_TIME = 3; // seconds for initial countdown
 
-            let currentUserId = null;
             let currentUserName = localStorage.getItem('playerNickname') || ''; // Load nickname from local storage
-            const appId = window.__app_id;
-            let currentGameId = null;
-            let unsubscribeGameListener = null; // To manage Firestore real-time listener
-
-            let gameTimerInterval = null; // For the 20-second game timer
-            let countdownTimerInterval = null; // For the initial 3-second countdown
+            let currentGameLetter = null;
+            let gameTimerInterval = null;
+            let countdownTimerInterval = null;
+            let remainingGameTime = GAME_TIME; // Global variable to store remaining time
 
             // --- DOM Elements ---
-            const loadingScreen = document.getElementById('loading-screen');
             const mainMenuScreen = document.getElementById('main-menu-screen');
-            const gameLobbyScreen = document.getElementById('game-lobby-screen');
             const countdownScreen = document.getElementById('countdown-screen');
             const gamePlayingScreen = document.getElementById('game-playing-screen');
             const gameResultsScreen = document.getElementById('game-results-screen');
 
             const playerNicknameInput = document.getElementById('player-nickname');
-            const createGameButton = document.getElementById('create-game-button');
-            const gameIdInput = document.getElementById('game-id-input');
-            const joinGameButton = document.getElementById('join-game-button');
-            const gameSetupFeedback = document.getElementById('game-setup-feedback');
-            const gameSetupSpinner = document.getElementById('game-setup-spinner');
-
-            const lobbyGameIdDisplay = document.getElementById('lobby-game-id');
-            const playersList = document.getElementById('players-list');
-            const readyButton = document.getElementById('ready-button');
             const startGameButton = document.getElementById('start-game-button');
-            const leaveGameButton = document.getElementById('leave-game-button');
-            const lobbyFeedback = document.getElementById('lobby-feedback');
-            const lobbySpinner = document.getElementById('lobby-spinner');
-
+            const gameSetupFeedback = document.getElementById('game-setup-feedback');
+            
             const countdownDisplay = document.getElementById('countdown-display');
 
             const currentLetterDisplay = document.getElementById('current-letter-display');
+            const gameTimerBar = document.getElementById('game-timer-bar');
+            const gameTimerText = document.getElementById('game-timer-text'); // New element for numerical timer
+
+            // Updated GAME_CATEGORIES to reflect the combined category
+            const GAME_CATEGORIES = ["nomi", "cose", "citta", "colore", "animali", "fioriepiante"]; 
             const categoryInputs = {};
             GAME_CATEGORIES.forEach(cat => {
                 const input = document.getElementById(`input-${cat}`);
@@ -295,25 +210,22 @@
                 }
             });
             const finishButton = document.getElementById('finish-button');
-            const gameTimerBar = document.getElementById('game-timer-bar');
             const gameFeedback = document.getElementById('game-feedback');
 
             const resultsLetterDisplay = document.getElementById('results-letter');
             const resultsPlayerNameDisplay = document.getElementById('results-player-name');
             const playerAnswersList = document.getElementById('player-answers-list');
-            const resultsSpinner = document.getElementById('results-spinner');
+            const timeRemainingMessage = document.getElementById('time-remaining-message'); // New element for time message
             const playNewGameButton = document.getElementById('play-new-game-button');
             const returnToMainMenuResultsButton = document.getElementById('return-to-main-menu-results');
 
-            const userIdDisplay = document.getElementById('user-id-display');
-
             // --- UTILITY FUNCTIONS ---
-            function generateRandomId(length = 6) {
-                return Math.random().toString(36).substring(2, 2 + length).toUpperCase();
+            function generateRandomLetter() {
+                return ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
             }
 
             function showScreen(screenId) {
-                const screens = [loadingScreen, mainMenuScreen, gameLobbyScreen, countdownScreen, gamePlayingScreen, gameResultsScreen];
+                const screens = [mainMenuScreen, countdownScreen, gamePlayingScreen, gameResultsScreen];
                 screens.forEach(screen => {
                     if (screen.id === screenId) {
                         screen.classList.remove('hidden');
@@ -323,366 +235,76 @@
                 });
             }
 
-            // --- GAME SETUP & LOBBY LOGIC ---
-            async function createGame() {
-                const nickname = playerNicknameInput.value.trim();
-                if (!nickname) {
-                    gameSetupFeedback.textContent = "Inserisci un nickname per creare una partita.";
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
+            // --- GAME FLOW LOGIC ---
+            function startGameFlow() {
+                currentUserName = playerNicknameInput.value.trim();
+                if (!currentUserName) {
+                    gameSetupFeedback.textContent = "Inserisci un nickname per iniziare la partita.";
                     gameSetupFeedback.classList.remove('hidden');
                     return;
                 }
-                currentUserName = nickname;
-                localStorage.setItem('playerNickname', nickname);
+                localStorage.setItem('playerNickname', currentUserName);
+                gameSetupFeedback.classList.add('hidden'); // Hide feedback
 
-                gameSetupSpinner.classList.remove('hidden');
-                gameSetupFeedback.classList.add('hidden');
-                createGameButton.disabled = true;
-                joinGameButton.disabled = true;
-
-                try {
-                    const gameId = generateRandomId();
-                    currentGameId = gameId;
-                    const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), gameId);
-
-                    await setDoc(gameRef, {
-                        hostId: currentUserId,
-                        players: {
-                            [currentUserId]: { name: currentUserName, ready: false, answers: {}, score: 0 }
-                        },
-                        state: "lobby", // lobby, countdown, playing, finished
-                        currentLetter: null,
-                        countdownStartTime: null,
-                        gameEndTime: null,
-                        createdAt: serverTimestamp()
-                    });
-
-                    console.log("Partita creata:", gameId);
-                    setupGameListener(gameId);
-                    showScreen('game-lobby-screen');
-                    lobbyGameIdDisplay.textContent = gameId;
-
-                } catch (error) {
-                    gameSetupFeedback.textContent = `Errore nella creazione della partita: ${error.message}`;
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                    gameSetupFeedback.classList.remove('hidden');
-                    console.error("Error creating game:", error);
-                } finally {
-                    gameSetupSpinner.classList.add('hidden');
-                    createGameButton.disabled = false;
-                    joinGameButton.disabled = false;
-                }
+                currentGameLetter = generateRandomLetter();
+                countdownDisplay.textContent = COUNTDOWN_START_TIME; // Reset countdown display
+                showScreen('countdown-screen');
+                startCountdown();
             }
 
-            async function joinGame() {
-                const nickname = playerNicknameInput.value.trim();
-                if (!nickname) {
-                    gameSetupFeedback.textContent = "Inserisci un nickname per unirti a una partita.";
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                    gameSetupFeedback.classList.remove('hidden');
-                    return;
-                }
-                currentUserName = nickname;
-                localStorage.setItem('playerNickname', nickname);
-
-                const gameId = gameIdInput.value.trim().toUpperCase();
-                if (!gameId) {
-                    gameSetupFeedback.textContent = "Inserisci l'ID della partita.";
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                    gameSetupFeedback.classList.remove('hidden');
-                    return;
-                }
-
-                gameSetupSpinner.classList.remove('hidden');
-                gameSetupFeedback.classList.add('hidden');
-                createGameButton.disabled = true;
-                joinGameButton.disabled = true;
-
-                try {
-                    const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), gameId);
-                    const gameSnap = await getDoc(gameRef);
-
-                    if (!gameSnap.exists()) {
-                        gameSetupFeedback.textContent = "Partita non trovata. Controlla l'ID.";
-                        gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                        gameSetupFeedback.classList.remove('hidden');
-                        return;
-                    }
-
-                    currentGameId = gameId;
-                    await updateDoc(gameRef, {
-                        [`players.${currentUserId}`]: { name: currentUserName, ready: false, answers: {}, score: 0 }
-                    });
-
-                    console.log("Unito alla partita:", gameId);
-                    setupGameListener(gameId);
-                    showScreen('game-lobby-screen');
-                    lobbyGameIdDisplay.textContent = gameId;
-
-                } catch (error) {
-                    gameSetupFeedback.textContent = `Errore nell'unione alla partita: ${error.message}`;
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                    gameSetupFeedback.classList.remove('hidden');
-                    console.error("Error joining game:", error);
-                } finally {
-                    gameSetupSpinner.classList.add('hidden');
-                    createGameButton.disabled = false;
-                    joinGameButton.disabled = false;
-                }
-            }
-
-            async function leaveGame() {
-                if (currentGameId && currentUserId) {
-                    try {
-                        if (unsubscribeGameListener) {
-                            unsubscribeGameListener(); // Stop listening to game updates
-                            unsubscribeGameListener = null;
-                        }
-
-                        const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId);
-                        const gameSnap = await getDoc(gameRef);
-                        
-                        if (gameSnap.exists()) {
-                            const gameData = gameSnap.data();
-                            if (gameData.hostId === currentUserId) {
-                                // If host leaves, delete the game
-                                await deleteDoc(gameRef);
-                                console.log("Host ha abbandonato, partita eliminata.");
-                            } else {
-                                // If player leaves, remove them from players list
-                                await updateDoc(gameRef, {
-                                    [`players.${currentUserId}`]: firebase.deleteField()
-                                });
-                                console.log("Giocatore ha abbandonato la partita.");
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Errore nell'abbandono della partita:", error);
-                    } finally {
-                        currentGameId = null;
-                        initApp(); // Go back to main menu
-                    }
-                } else {
-                    initApp(); // Just go back to main menu if no game is active
-                }
-            }
-
-            function setupGameListener(gameId) {
-                if (unsubscribeGameListener) {
-                    unsubscribeGameListener();
-                }
-
-                const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), gameId);
-                unsubscribeGameListener = onSnapshot(gameRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const gameData = docSnap.data();
-                        console.log("Dati partita aggiornati:", gameData);
-                        handleGameState(gameData);
-                    } else {
-                        console.log("Partita non esiste più. Ritorno al menu principale.");
-                        gameSetupFeedback.textContent = "La partita non esiste più o è stata chiusa dall'host.";
-                        gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                        gameSetupFeedback.classList.remove('hidden');
-                        leaveGame(); // Automatically leave if game is deleted
-                    }
-                }, (error) => {
-                    console.error("Errore di connessione alla partita:", error);
-                    gameSetupFeedback.textContent = `Errore di connessione alla partita: ${error.message}`;
-                    gameSetupFeedback.className = "text-sm mt-2 text-red-500";
-                    gameSetupFeedback.classList.remove('hidden');
-                });
-            }
-
-            function updateLobbyUI(gameData) {
-                if (gameLobbyScreen.classList.contains('hidden')) return; // Only update if on lobby screen
-
-                lobbyGameIdDisplay.textContent = currentGameId;
-                playersList.innerHTML = '';
-                const players = Object.values(gameData.players || {});
-                players.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = `${player.name} (${player.ready ? 'Pronto' : 'Non Pronto'})`;
-                    // Highlight current player based on their ID, not name
-                    if (player.id === currentUserId) { // Assuming player object in Firestore has an 'id' field matching currentUserId
-                        li.classList.add('font-bold', 'text-blue-600');
-                    }
-                    playersList.appendChild(li);
-                });
-
-                const isHost = gameData.hostId === currentUserId;
-                const allPlayersReady = players.length >= 1 && players.every(p => p.ready); // At least 1 player, all ready (host is always ready implicitly if they created the game)
-
-                if (isHost) {
-                    startGameButton.classList.remove('hidden');
-                    if (allPlayersReady && players.length >= 2) { // Host can start if at least 2 players and all ready
-                        startGameButton.disabled = false;
-                        startGameButton.classList.remove('disabled-button');
-                        lobbyFeedback.classList.add('hidden');
-                    } else {
-                        startGameButton.disabled = true;
-                        startGameButton.classList.add('disabled-button');
-                        if (players.length < 2) {
-                            lobbyFeedback.textContent = "Attendi almeno 2 giocatori per iniziare.";
-                        } else {
-                            lobbyFeedback.textContent = "Attendi che tutti i giocatori siano pronti.";
-                        }
-                        lobbyFeedback.className = "text-sm mt-2 text-orange-500";
-                        lobbyFeedback.classList.remove('hidden');
-                    }
-                    readyButton.classList.add('hidden'); // Host doesn't need a ready button
-                } else {
-                    startGameButton.classList.add('hidden');
-                    readyButton.classList.remove('hidden');
-                    lobbyFeedback.textContent = "In attesa che l'host avvii la partita...";
-                    lobbyFeedback.className = "text-sm mt-2 text-gray-600";
-                    lobbyFeedback.classList.remove('hidden');
-                }
-            }
-
-            async function toggleReadyState() {
-                if (currentGameId && currentUserId) {
-                    const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId);
-                    const gameSnap = await getDoc(gameRef);
-                    if (gameSnap.exists()) {
-                        const playerState = gameSnap.data().players[currentUserId];
-                        await updateDoc(gameRef, {
-                            [`players.${currentUserId}.ready`]: !playerState.ready
-                        });
-                    }
-                }
-            }
-
-            async function startGame() {
-                if (currentGameId && currentUserId) {
-                    const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId);
-                    const gameSnap = await getDoc(gameRef);
-                    if (!gameSnap.exists() || gameSnap.data().hostId !== currentUserId) {
-                        console.error("Solo l'host può avviare la partita.");
-                        return;
-                    }
-
-                    const gameData = gameSnap.data();
-                    const players = Object.values(gameData.players);
-                    if (players.length < 2 || !players.every(p => p.ready)) {
-                        lobbyFeedback.textContent = "Non tutti i giocatori sono pronti o non ci sono abbastanza giocatori.";
-                        lobbyFeedback.className = "text-sm mt-2 text-red-500";
-                        lobbyFeedback.classList.remove('hidden');
-                        return;
-                    }
-
-                    const randomLetter = ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
-
-                    // Reset answers for all players for a new game
-                    let updatedPlayers = {};
-                    for (const playerId in gameData.players) {
-                        updatedPlayers[playerId] = { ...gameData.players[playerId], answers: {}, finished: false };
-                    }
-
-                    await updateDoc(gameRef, {
-                        state: "countdown",
-                        currentLetter: randomLetter,
-                        countdownStartTime: serverTimestamp(),
-                        gameEndTime: null,
-                        finishedBy: null, // Reset who finished first
-                        players: updatedPlayers
-                    });
-                    console.log("Partita avviata dall'host.");
-                }
-            }
-
-            // --- GAME PLAYING LOGIC ---
-            function handleGameState(gameData) {
-                if (gameData.state === "lobby") {
-                    showScreen('game-lobby-screen');
-                    updateLobbyUI(gameData);
-                    clearInterval(countdownTimerInterval);
-                    clearInterval(gameTimerInterval);
-                } else if (gameData.state === "countdown") {
-                    showScreen('countdown-screen');
-                    startCountdownTimer(gameData);
-                } else if (gameData.state === "playing") {
-                    showScreen('game-playing-screen');
-                    currentLetterDisplay.textContent = gameData.currentLetter;
-                    resetGameInputs();
-                    startGameTimer(gameData);
-                } else if (gameData.state === "finished") {
-                    showScreen('game-results-screen');
-                    displayResults(gameData);
-                    clearInterval(countdownTimerInterval);
-                    clearInterval(gameTimerInterval);
-                }
-            }
-
-            function startCountdownTimer(gameData) {
-                clearInterval(countdownTimerInterval);
-                clearInterval(gameTimerInterval); // Ensure game timer is also cleared
-
-                const startTime = gameData.countdownStartTime ? gameData.countdownStartTime.toDate().getTime() : Date.now();
-                const endTime = startTime + (3 * 1000); // 3-second countdown
-
-                countdownTimerInterval = setInterval(async () => {
-                    const now = Date.now();
-                    const timeLeft = Math.max(0, Math.ceil((endTime - now) / 1000));
+            function startCountdown() {
+                let timeLeft = COUNTDOWN_START_TIME;
+                countdownDisplay.textContent = timeLeft;
+                countdownTimerInterval = setInterval(() => {
+                    timeLeft--;
                     countdownDisplay.textContent = timeLeft;
-
                     if (timeLeft <= 0) {
                         clearInterval(countdownTimerInterval);
-                        if (gameData.hostId === currentUserId) {
-                            // Host transitions to playing state
-                            await updateDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId), {
-                                state: "playing",
-                                gameStartTime: serverTimestamp(), // Mark game start time
-                                gameEndTime: null // Ensure this is null at start
-                            });
-                        }
+                        showScreen('game-playing-screen');
+                        currentLetterDisplay.textContent = currentGameLetter;
+                        resetGameInputs();
+                        startGameTimer();
                     }
                 }, 1000);
             }
 
-            function startGameTimer(gameData) {
-                clearInterval(gameTimerInterval);
+            function startGameTimer() {
+                clearInterval(gameTimerInterval); // Clear any existing timer
                 gameTimerBar.style.width = '100%';
                 gameTimerBar.style.backgroundColor = '#4CAF50';
+                gameTimerText.textContent = GAME_TIME; // Initialize numerical timer
 
-                const startTime = gameData.gameStartTime ? gameData.gameStartTime.toDate().getTime() : Date.now();
-                const endTime = startTime + (COUNTDOWN_TIME * 1000);
+                remainingGameTime = GAME_TIME; // Initialize global remaining time
+                gameTimerInterval = setInterval(() => {
+                    remainingGameTime--; // Decrement global remaining time
+                    gameTimerText.textContent = remainingGameTime; // Update numerical timer
 
-                gameTimerInterval = setInterval(async () => {
-                    const now = Date.now();
-                    const timeLeft = Math.max(0, endTime - now);
-
-                    if (timeLeft <= 0) {
-                        clearInterval(gameTimerInterval);
-                        if (gameData.hostId === currentUserId && gameData.state === "playing") {
-                            // Host automatically finishes the game if time runs out
-                            await updateDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId), {
-                                state: "finished",
-                                gameEndTime: serverTimestamp(),
-                                finishedBy: "timer"
-                            });
-                        }
+                    const progress = (remainingGameTime / GAME_TIME) * 100;
+                    gameTimerBar.style.width = `${progress}%`;
+                    if (progress < 25) {
+                        gameTimerBar.style.backgroundColor = '#f44336'; // Red
+                    } else if (progress < 50) {
+                        gameTimerBar.style.backgroundColor = '#ff9800'; // Orange
                     } else {
-                        const progress = (timeLeft / (COUNTDOWN_TIME * 1000)) * 100;
-                        gameTimerBar.style.width = `${progress}%`;
-                        if (progress < 25) {
-                            gameTimerBar.style.backgroundColor = '#f44336'; // Red
-                        } else if (progress < 50) {
-                            timerBar.style.backgroundColor = '#ff9800'; // Orange
-                        } else {
-                            gameTimerBar.style.backgroundColor = '#4CAF50'; // Green
-                        }
+                        gameTimerBar.style.backgroundColor = '#4CAF50'; // Green
                     }
-                }, 100);
+
+                    if (remainingGameTime <= 0) {
+                        clearInterval(gameTimerInterval);
+                        displayResultsScreen(false); // Time's up, show results, not finished early
+                    }
+                }, 1000);
             }
 
             function checkFinishButtonState() {
                 let allFilled = true;
                 GAME_CATEGORIES.forEach(cat => {
                     const input = categoryInputs[cat];
-                    if (!input || input.value.trim() === '') {
+                    // Check if input exists and is empty
+                    if (input && input.value.trim() === '') {
                         allFilled = false;
                         input.classList.remove('filled');
-                    } else {
+                    } else if (input) { // If input exists and is not empty
                         input.classList.add('filled');
                     }
                 });
@@ -710,140 +332,53 @@
                 gameFeedback.classList.add('hidden');
             }
 
-            async function submitAnswers() {
-                if (!currentGameId || !currentUserId) return;
+            function displayResultsScreen(finishedEarly = false) { // Added parameter
+                clearInterval(gameTimerInterval); // Stop game timer
+                clearInterval(countdownTimerInterval); // Stop countdown timer if active
 
-                const gameRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), currentGameId);
-                const gameSnap = await getDoc(gameRef);
-                if (!gameSnap.exists()) return;
-
-                const gameData = gameSnap.data();
-                if (gameData.state !== "playing" || gameData.players[currentUserId].finished) {
-                    return; // Can only submit if in 'playing' state and not already finished
-                }
-
-                let answers = {};
-                GAME_CATEGORIES.forEach(cat => {
-                    const input = categoryInputs[cat];
-                    if (input) {
-                        answers[cat] = input.value.trim();
-                        input.disabled = true; // Disable input fields after submission
-                    }
-                });
-
-                finishButton.disabled = true; // Disable button immediately
-                finishButton.classList.add('disabled-button');
-                gameFeedback.textContent = "Risposte inviate!";
-                gameFeedback.className = "text-sm mt-2 text-green-600";
-                gameFeedback.classList.remove('hidden');
-
-                await updateDoc(gameRef, {
-                    [`players.${currentUserId}.answers`]: answers,
-                    [`players.${currentUserId}.finished`]: true
-                });
-
-                // Only the first player to finish (or host if timer runs out) sets game to finished state
-                if (gameData.finishedBy === null) { // Check if game is not already marked as finished
-                    await updateDoc(gameRef, {
-                        state: "finished",
-                        gameEndTime: serverTimestamp(),
-                        finishedBy: currentUserId // Mark who finished first
-                    });
-                }
-            }
-
-            function displayResults(gameData) {
-                resultsLetterDisplay.textContent = gameData.currentLetter;
-                resultsPlayerNameDisplay.textContent = `Le risposte di ${currentUserName}:`;
+                resultsLetterDisplay.textContent = currentGameLetter;
+                resultsPlayerNameDisplay.textContent = `Le tue risposte, ${currentUserName}:`;
                 playerAnswersList.innerHTML = '';
-
-                const currentPlayerAnswers = gameData.players[currentUserId]?.answers || {};
 
                 GAME_CATEGORIES.forEach(cat => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<span class="font-bold capitalize">${cat}:</span> ${currentPlayerAnswers[cat] || 'Nessuna risposta'}`;
+                    let categoryDisplayName = cat.charAt(0).toUpperCase() + cat.slice(1);
+                    if (cat === 'fioriepiante') {
+                        categoryDisplayName = 'Fiori e Piante';
+                    }
+                    li.innerHTML = `<span class="font-bold">${categoryDisplayName}:</span> ${categoryInputs[cat].value.trim() || 'Nessuna risposta'}`;
                     playerAnswersList.appendChild(li);
                 });
 
-                // In a real game, you'd add scoring logic here, comparing answers across players.
-                // For now, it just shows your answers and waits for others.
-                resultsSpinner.classList.remove('hidden'); // Show spinner while waiting for others
-                gameFeedback.classList.add('hidden'); // Hide any previous game feedback
-            }
+                // Display time remaining message
+                if (finishedEarly) {
+                    timeRemainingMessage.textContent = `Hai finito con ${remainingGameTime} secondi rimanenti!`;
+                    timeRemainingMessage.classList.remove('hidden');
+                } else {
+                    timeRemainingMessage.textContent = `Tempo scaduto!`;
+                    timeRemainingMessage.classList.remove('hidden');
+                }
 
+                showScreen('game-results-screen');
+            }
 
             // --- INITIALIZATION ---
             function initApp() {
-                showScreen('loading-screen'); // Start with loading screen
-                
-                // Clear all dynamic content and states
                 playerNicknameInput.value = localStorage.getItem('playerNickname') || '';
-                gameIdInput.value = '';
+                showScreen('main-menu-screen');
                 gameSetupFeedback.classList.add('hidden');
-                gameSetupSpinner.classList.add('hidden');
-                lobbyFeedback.classList.add('hidden');
-                lobbySpinner.classList.add('hidden');
-                gameFeedback.classList.add('hidden');
-                resultsSpinner.classList.add('hidden');
-                clearInterval(countdownTimerInterval);
-                clearInterval(gameTimerInterval);
-                resetGameInputs(); // Clear inputs and disable finish button
-
-                // Set a timeout to ensure the main menu eventually appears,
-                // even if Firebase loading encounters an unexpected halt.
-                setTimeout(() => {
-                    if (loadingScreen.classList.contains('hidden')) {
-                        // Already loaded by Firebase, do nothing.
-                    } else {
-                        console.warn("Firebase loading timeout: Showing main menu without full data confirmation.");
-                        showScreen('main-menu-screen');
-                    }
-                }, 5000); // 5 seconds timeout
+                timeRemainingMessage.classList.add('hidden'); // Hide on init
+                resetGameInputs(); // Ensure inputs are clear on app start/reset
             }
 
-            // --- Firebase Authentication ---
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    userIdDisplay.textContent = `ID Utente: ${currentUserId}`;
-                    console.log("Autenticato come:", currentUserId);
-                    showScreen('main-menu-screen'); // Show main menu once authenticated
-                } else {
-                    console.log("Nessun utente autenticato, tentativo di accesso anonimo.");
-                    try {
-                        if (window.__initial_auth_token) {
-                            await window.firebase.signInWithCustomToken(auth, window.__initial_auth_token);
-                            console.log("Accesso con token personalizzato.");
-                        } else {
-                            await window.firebase.signInAnonymously(auth);
-                            console.log("Accesso anonimo.");
-                        }
-                    } catch (error) {
-                        console.error("Errore durante l'accesso:", error);
-                        loadingScreen.innerHTML = `<p class="text-red-500">Errore di autenticazione: ${error.message}</p>`;
-                        // Fallback to main menu even on auth error
-                        showScreen('main-menu-screen');
-                    }
-                }
-            });
-
             // --- Event Listeners ---
-            createGameButton.addEventListener('click', createGame);
-            joinGameButton.addEventListener('click', joinGame);
-            readyButton.addEventListener('click', toggleReadyState);
-            startGameButton.addEventListener('click', startGame);
-            leaveGameButton.addEventListener('click', leaveGame);
-            finishButton.addEventListener('click', submitAnswers);
-            playNewGameButton.addEventListener('click', initApp); // Go back to main menu to start new game
-            returnToMainMenuResultsButton.addEventListener('click', initApp); // Go back to main menu
+            startGameButton.addEventListener('click', startGameFlow);
+            finishButton.addEventListener('click', () => displayResultsScreen(true)); // Pass true when finished early
+            playNewGameButton.addEventListener('click', initApp);
+            returnToMainMenuResultsButton.addEventListener('click', initApp);
 
-            // Add event listeners for input fields to check finish button state
-            GAME_CATEGORIES.forEach(cat => {
-                const input = document.getElementById(`input-${cat}`);
-                if (input) {
-                    input.addEventListener('input', checkFinishButtonState);
-                }
-            });
+            // Initial check for finish button state (in case nickname is pre-filled)
+            checkFinishButtonState(); 
 
             // --- INITIALIZATION CALL ---
             initApp();
