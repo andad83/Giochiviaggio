@@ -990,6 +990,7 @@
                     return;
                 }
                 currentUserName = nickname;
+                localStorage.setItem('playerNickname', nickname); // Persist nickname
 
                 const category = quizCategorySelect.value;
                 const numQuestions = parseInt(quizSizeSelect.value);
@@ -1074,6 +1075,7 @@
                     return;
                 }
                 currentUserName = nickname;
+                localStorage.setItem('playerNickname', nickname); // Persist nickname
 
                 const roomId = roomIdInput.value.trim().toUpperCase();
                 if (!roomId) {
@@ -1225,31 +1227,38 @@
                     // Corrected Firestore path: using collection for nested path segments
                     const roomRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'quiz_rooms'), currentRoomId);
                     const roomSnap = await getDoc(roomRef);
-                    if (roomSnap.exists() && roomSnap.data().hostId === currentUserId) {
-                        const roomData = roomSnap.data();
-                        if (Object.keys(roomData.players).length < 2) {
-                            lobbyFeedback.textContent = "Non puoi iniziare senza almeno 2 giocatori.";
-                            lobbyFeedback.className = "text-sm mt-2 text-red-500";
-                            lobbyFeedback.classList.remove('hidden');
-                            return;
-                        }
-
-                        // Reset player scores for a new game
-                        let updatedPlayers = {};
-                        for (const playerId in roomData.players) {
-                            updatedPlayers[playerId] = { ...roomData.players[playerId], score: 0, lastAnswer: null, answered: false };
-                        }
-
-                        await updateDoc(roomRef, {
-                            state: "question",
-                            currentQuestionIndex: 0,
-                            currentQuestion: roomData.questions[0],
-                            questionStartTime: serverTimestamp(),
-                            questionEndTime: null, // Will be set when question is revealed
-                            players: updatedPlayers
-                        });
-                        console.log("Game started by host.");
+                    if (!roomSnap.exists()) {
+                        console.error("Room does not exist when trying to start game.");
+                        return;
                     }
+                    if (roomSnap.data().hostId !== currentUserId) {
+                        console.error("Only host can start the game.");
+                        return;
+                    }
+
+                    const roomData = roomSnap.data();
+                    if (Object.keys(roomData.players).length < 2) {
+                        lobbyFeedback.textContent = "Non puoi iniziare senza almeno 2 giocatori.";
+                        lobbyFeedback.className = "text-sm mt-2 text-red-500";
+                        lobbyFeedback.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Reset player scores for a new game
+                    let updatedPlayers = {};
+                    for (const playerId in roomData.players) {
+                        updatedPlayers[playerId] = { ...roomData.players[playerId], score: 0, lastAnswer: null, answered: false };
+                    }
+
+                    await updateDoc(roomRef, {
+                        state: "question",
+                        currentQuestionIndex: 0,
+                        currentQuestion: roomData.questions[0],
+                        questionStartTime: serverTimestamp(),
+                        questionEndTime: null, // Will be set when question is revealed
+                        players: updatedPlayers
+                    });
+                    console.log("Game started by host.");
                 }
             }
 
@@ -1521,7 +1530,7 @@
                 lobbySpinner.classList.add('hidden');
                 answerFeedbackDisplay.classList.add('hidden');
                 quizSpinner.classList.add('hidden');
-                playerNicknameInput.value = '';
+                playerNicknameInput.value = localStorage.getItem('playerNickname') || ''; // Load nickname from local storage
                 roomIdInput.value = '';
                 clearInterval(questionTimerInterval);
                 timerBar.style.width = '100%';
