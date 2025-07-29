@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nomi, Cose, Città - Singolo</title>
+    <title>Nomi, Cose, Città - Honor System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,7 +50,7 @@
             cursor: not-allowed;
         }
         .timer-bar-container {
-            position: relative; /* Added for absolute positioning of timer text */
+            position: relative;
             width: 100%;
             background-color: #e0e0e0;
             border-radius: 5px;
@@ -70,10 +70,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #333; /* Darker color for readability */
+            color: #333;
             font-weight: bold;
-            font-size: 0.8rem; /* Smaller font to fit */
-            text-shadow: 0 0 2px rgba(255,255,255,0.7); /* Slight shadow for contrast */
+            font-size: 0.8rem;
+            text-shadow: 0 0 2px rgba(255,255,255,0.7);
         }
     </style>
 </head>
@@ -96,6 +96,13 @@
 
             <button id="start-game-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300 text-lg mb-4">Inizia Partita</button>
             <p id="game-setup-feedback" class="text-sm mt-2 hidden text-red-500"></p>
+
+            <!-- Letter input section for Antonio and other players to confirm letter -->
+            <div id="letter-input-section" class="mb-4 w-full max-w-sm hidden">
+                <p id="letter-input-message" class="text-gray-700 text-md mb-2 text-center"></p>
+                <input type="text" id="manual-letter-input" maxlength="1" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 border-gray-300 uppercase text-center font-bold text-2xl"/>
+                <button id="confirm-letter-button" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300 mt-4 disabled-button" disabled>Conferma Lettera e Inizia</button>
+            </div>
         </div>
 
         <!-- Countdown Screen -->
@@ -160,7 +167,37 @@
                 </ul>
             </div>
             
-            <p id="time-remaining-message" class="text-lg text-gray-700 mt-4"></p> <!-- New element for time message -->
+            <p id="time-remaining-message" class="text-lg text-gray-700 mt-4"></p>
+
+            <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md mt-8">
+                <h3 class="text-xl font-bold text-gray-700 mb-4 text-center">Definizione Punteggi:</h3>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 bg-gray-200 font-bold uppercase text-sm text-gray-700 border-b border-gray-300 rounded-tl-lg">Tipo di Risposta</th>
+                            <th class="py-2 px-4 bg-gray-200 font-bold uppercase text-sm text-gray-700 border-b border-gray-300 rounded-tr-lg">Punti</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-2 px-4 border-b border-gray-200">Parola unica</td>
+                            <td class="py-2 px-4 border-b border-gray-200 font-bold text-green-600">5 pti</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 border-b border-gray-200">Parola in comune</td>
+                            <td class="py-2 px-4 border-b border-gray-200 font-bold text-orange-500">2 pti</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 border-b border-gray-200">Vuoto</td>
+                            <td class="py-2 px-4 border-b border-gray-200 font-bold text-gray-500">0 pti</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4">Parola a caso / Errata</td>
+                            <td class="py-2 px-4 font-bold text-red-600">-2 pti</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <footer class="text-center mt-12">
                 <button id="play-new-game-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300 text-lg mb-4">Gioca Nuova Partita</button>
@@ -174,14 +211,14 @@
             // --- GLOBAL GAME STATE & VARIABLES ---
             // Restricted Italian alphabet
             const ALPHABET = "AEIOUBCDFGLMNPQRSTVZ".split(''); 
-            const GAME_TIME = 60; // seconds for the game round - Increased to 60 seconds
-            const COUNTDOWN_START_TIME = 3; // seconds for initial countdown
+            const GAME_TIME = 60;
+            const COUNTDOWN_START_TIME = 3;
 
-            let currentUserName = localStorage.getItem('playerNickname') || ''; // Load nickname from local storage
+            let currentUserName = localStorage.getItem('playerNickname') || '';
             let currentGameLetter = null;
             let gameTimerInterval = null;
             let countdownTimerInterval = null;
-            let remainingGameTime = GAME_TIME; // Global variable to store remaining time
+            let remainingGameTime = GAME_TIME;
 
             // --- DOM Elements ---
             const mainMenuScreen = document.getElementById('main-menu-screen');
@@ -193,13 +230,17 @@
             const startGameButton = document.getElementById('start-game-button');
             const gameSetupFeedback = document.getElementById('game-setup-feedback');
             
+            const letterInputSection = document.getElementById('letter-input-section');
+            const letterInputMessage = document.getElementById('letter-input-message'); // New element for message
+            const manualLetterInput = document.getElementById('manual-letter-input');
+            const confirmLetterButton = document.getElementById('confirm-letter-button');
+
             const countdownDisplay = document.getElementById('countdown-display');
 
             const currentLetterDisplay = document.getElementById('current-letter-display');
             const gameTimerBar = document.getElementById('game-timer-bar');
-            const gameTimerText = document.getElementById('game-timer-text'); // New element for numerical timer
+            const gameTimerText = document.getElementById('game-timer-text');
 
-            // Updated GAME_CATEGORIES to reflect the combined category
             const GAME_CATEGORIES = ["nomi", "cose", "citta", "colore", "animali", "fioriepiante"]; 
             const categoryInputs = {};
             GAME_CATEGORIES.forEach(cat => {
@@ -215,7 +256,7 @@
             const resultsLetterDisplay = document.getElementById('results-letter');
             const resultsPlayerNameDisplay = document.getElementById('results-player-name');
             const playerAnswersList = document.getElementById('player-answers-list');
-            const timeRemainingMessage = document.getElementById('time-remaining-message'); // New element for time message
+            const timeRemainingMessage = document.getElementById('time-remaining-message');
             const playNewGameButton = document.getElementById('play-new-game-button');
             const returnToMainMenuResultsButton = document.getElementById('return-to-main-menu-results');
 
@@ -244,17 +285,51 @@
                     return;
                 }
                 localStorage.setItem('playerNickname', currentUserName);
-                gameSetupFeedback.classList.add('hidden'); // Hide feedback
+                gameSetupFeedback.classList.add('hidden');
 
-                currentGameLetter = generateRandomLetter();
-                countdownDisplay.textContent = COUNTDOWN_START_TIME; // Reset countdown display
-                showScreen('countdown-screen');
+                // Check if the player is Antonio (case-insensitive)
+                if (currentUserName.toLowerCase() === 'antonio') {
+                    currentGameLetter = generateRandomLetter();
+                    letterInputMessage.textContent = `Sei Antonio! La lettera estratta è: '${currentGameLetter}'. Annunciala agli altri e clicca "Conferma Lettera e Inizia" per avviare il gioco.`;
+                    manualLetterInput.value = currentGameLetter;
+                    manualLetterInput.disabled = true; // Antonio's input is fixed
+                    confirmLetterButton.disabled = false; // Antonio can confirm
+                    confirmLetterButton.classList.remove('disabled-button');
+                    
+                    startGameButton.classList.add('hidden'); // Hide the regular start button
+                    letterInputSection.classList.remove('hidden'); // Show letter input section
+                    manualLetterInput.focus(); // Focus on the input for clarity
+                } else {
+                    // For other players, prompt for letter input
+                    startGameButton.classList.add('hidden'); // Hide the regular start button
+                    letterInputSection.classList.remove('hidden'); // Show letter input section
+                    letterInputMessage.textContent = "Attendi che Antonio annunci la lettera, poi digitala qui:";
+                    manualLetterInput.value = ''; // Clear any previous input
+                    manualLetterInput.disabled = false; // Other players can type
+                    manualLetterInput.focus();
+                    confirmLetterButton.disabled = true; // Disable confirm button initially
+                    confirmLetterButton.classList.add('disabled-button');
+                }
+            }
+
+            function confirmManualLetter() {
+                const letter = manualLetterInput.value.trim().toUpperCase();
+                if (!letter || letter.length !== 1 || !ALPHABET.includes(letter)) {
+                    gameSetupFeedback.textContent = "Inserisci una singola lettera valida dall'alfabeto.";
+                    gameSetupFeedback.classList.remove('hidden');
+                    gameSetupFeedback.classList.add('text-red-500');
+                    return;
+                }
+                currentGameLetter = letter;
+                gameSetupFeedback.classList.add('hidden'); // Hide feedback
+                letterInputSection.classList.add('hidden'); // Hide letter input
                 startCountdown();
             }
 
             function startCountdown() {
                 let timeLeft = COUNTDOWN_START_TIME;
                 countdownDisplay.textContent = timeLeft;
+                showScreen('countdown-screen');
                 countdownTimerInterval = setInterval(() => {
                     timeLeft--;
                     countdownDisplay.textContent = timeLeft;
@@ -269,29 +344,29 @@
             }
 
             function startGameTimer() {
-                clearInterval(gameTimerInterval); // Clear any existing timer
+                clearInterval(gameTimerInterval);
                 gameTimerBar.style.width = '100%';
                 gameTimerBar.style.backgroundColor = '#4CAF50';
-                gameTimerText.textContent = GAME_TIME; // Initialize numerical timer
+                gameTimerText.textContent = GAME_TIME;
 
-                remainingGameTime = GAME_TIME; // Initialize global remaining time
+                remainingGameTime = GAME_TIME;
                 gameTimerInterval = setInterval(() => {
-                    remainingGameTime--; // Decrement global remaining time
-                    gameTimerText.textContent = remainingGameTime; // Update numerical timer
+                    remainingGameTime--;
+                    gameTimerText.textContent = remainingGameTime;
 
                     const progress = (remainingGameTime / GAME_TIME) * 100;
                     gameTimerBar.style.width = `${progress}%`;
                     if (progress < 25) {
-                        gameTimerBar.style.backgroundColor = '#f44336'; // Red
+                        gameTimerBar.style.backgroundColor = '#f44336';
                     } else if (progress < 50) {
-                        gameTimerBar.style.backgroundColor = '#ff9800'; // Orange
+                        gameTimerBar.style.backgroundColor = '#ff9800';
                     } else {
-                        gameTimerBar.style.backgroundColor = '#4CAF50'; // Green
+                        gameTimerBar.style.backgroundColor = '#4CAF50';
                     }
 
                     if (remainingGameTime <= 0) {
                         clearInterval(gameTimerInterval);
-                        displayResultsScreen(false); // Time's up, show results, not finished early
+                        displayResultsScreen(false);
                     }
                 }, 1000);
             }
@@ -300,11 +375,10 @@
                 let allFilled = true;
                 GAME_CATEGORIES.forEach(cat => {
                     const input = categoryInputs[cat];
-                    // Check if input exists and is empty
                     if (input && input.value.trim() === '') {
                         allFilled = false;
                         input.classList.remove('filled');
-                    } else if (input) { // If input exists and is not empty
+                    } else if (input) {
                         input.classList.add('filled');
                     }
                 });
@@ -332,9 +406,9 @@
                 gameFeedback.classList.add('hidden');
             }
 
-            function displayResultsScreen(finishedEarly = false) { // Added parameter
-                clearInterval(gameTimerInterval); // Stop game timer
-                clearInterval(countdownTimerInterval); // Stop countdown timer if active
+            function displayResultsScreen(finishedEarly = false) {
+                clearInterval(gameTimerInterval);
+                clearInterval(countdownTimerInterval);
 
                 resultsLetterDisplay.textContent = currentGameLetter;
                 resultsPlayerNameDisplay.textContent = `Le tue risposte, ${currentUserName}:`;
@@ -350,7 +424,6 @@
                     playerAnswersList.appendChild(li);
                 });
 
-                // Display time remaining message
                 if (finishedEarly) {
                     timeRemainingMessage.textContent = `Hai finito con ${remainingGameTime} secondi rimanenti!`;
                     timeRemainingMessage.classList.remove('hidden');
@@ -367,15 +440,32 @@
                 playerNicknameInput.value = localStorage.getItem('playerNickname') || '';
                 showScreen('main-menu-screen');
                 gameSetupFeedback.classList.add('hidden');
-                timeRemainingMessage.classList.add('hidden'); // Hide on init
-                resetGameInputs(); // Ensure inputs are clear on app start/reset
+                timeRemainingMessage.classList.add('hidden');
+                resetGameInputs();
+                startGameButton.classList.remove('hidden'); // Ensure start button is visible
+                letterInputSection.classList.add('hidden'); // Ensure letter input is hidden
+                gameSetupFeedback.classList.remove('text-green-600'); // Reset feedback color
+                gameSetupFeedback.classList.remove('text-gray-700');
             }
 
             // --- Event Listeners ---
             startGameButton.addEventListener('click', startGameFlow);
-            finishButton.addEventListener('click', () => displayResultsScreen(true)); // Pass true when finished early
+            finishButton.addEventListener('click', () => displayResultsScreen(true));
             playNewGameButton.addEventListener('click', initApp);
             returnToMainMenuResultsButton.addEventListener('click', initApp);
+
+            // Listener for manual letter input
+            manualLetterInput.addEventListener('input', () => {
+                const letter = manualLetterInput.value.trim().toUpperCase();
+                if (letter.length === 1 && ALPHABET.includes(letter)) {
+                    confirmLetterButton.disabled = false;
+                    confirmLetterButton.classList.remove('disabled-button');
+                } else {
+                    confirmLetterButton.disabled = true;
+                    confirmLetterButton.classList.add('disabled-button');
+                }
+            });
+            confirmLetterButton.addEventListener('click', confirmManualLetter);
 
             // Initial check for finish button state (in case nickname is pre-filled)
             checkFinishButtonState(); 
